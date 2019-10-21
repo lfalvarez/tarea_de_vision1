@@ -1,4 +1,4 @@
-# computer_vision
+# Visión por Computadora
 ## HOG
 En la carpeta *sim_search_hog* se puede encontrar un ejemplo de cómo calcular un vector de características a través del método HOG.
 
