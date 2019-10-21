@@ -4,7 +4,7 @@ En la carpeta *sim_search_hog* se puede encontrar un ejemplo de cómo calcular u
 
 Ejemplo de uso
 
-> $ python3.6 sim_search_hog/hog_features.py <image>
+> $ python3.6 sim_search_hog/hog_features.py [image]
   
   
 #Requerimiento
