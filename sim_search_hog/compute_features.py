@@ -29,19 +29,8 @@ def calculate_distance_to_all_images(str_datadir, original_hogs, original_labels
     print('feat shape {}'.format(features.shape))
     sum_of_aps = 0
     for i, (filename, current_label) in enumerate(zip(filenames, labels)) :
-        filename = os.path.join(str_datadir,'png_w256', filename)
-        image = pai.imread(filename, as_gray = True)
-        this_hog = hog.get_hog(image)
-        distances = []
-        for index, (other_hog, other_label, other_filename) in enumerate(zip(original_hogs, original_labels, original_filenames)):
-            dist = np.linalg.norm(this_hog - other_hog)
-            is_relevant = current_label == other_label ## Es relevante SSI el label del test es igual a la de la imagen cercana.
-            datos_de_comparacion = {'is_relevant': is_relevant, 'dist': dist}
-            datos_de_comparacion['other_filename'] = other_filename
-            distances.append(datos_de_comparacion)
-
-        sorted_distances = sorted(distances, key=lambda d: d['dist'])
-        distances = sorted_distances[:10]
+        distances, filename = distancias_ordenadas_a_imagen_de_test(current_label, filename, hog, original_filenames, original_hogs,
+                                                   original_labels, str_datadir)
         relevant_counter = 0
         AP = 0
         for index, d in enumerate(distances):
@@ -54,22 +43,51 @@ def calculate_distance_to_all_images(str_datadir, original_hogs, original_labels
             AP = AP/relevant_counter
             sum_of_aps += AP
 
-        if relevant_counter > 2 and relevant_counter < 5:
-            para_mostrar = [filename]
-            for d in distances[:10]:
-                para_mostrar.append(os.path.join(str_datadir,'png_w256', d['other_filename']))
-            final_dim = (256 * len(para_mostrar), 256)
-            new_im = Image.new('L', final_dim)
-            for j, im_file in enumerate(para_mostrar):
-                im = Image.open(im_file)
-                new_im.paste(im, (j*256, 0))
-            new_im.save('{}_comparado.jpg'.format(i))
-            print('{}_comparado.jpg'.format(i))
-
-
-
+        imprimir_imagenes(distances, filename, i, relevant_counter, str_datadir)
     mAP = (sum_of_aps/ len(filenames))
     print(mAP)
+
+
+def distancias_ordenadas_a_imagen_de_test(current_label, filename, hog, original_filenames, original_hogs, original_labels, str_datadir):
+    filename = os.path.join(str_datadir, 'png_w256', filename)
+    image = pai.imread(filename, as_gray=True)
+    this_hog = hog.get_hog(image)
+    distances = []
+    # Por cada una de las imagenes de training (other_hogs)
+    # calcularé la distancia euclidiana y si es relevante o no.
+    for index, (other_hog, other_label, other_filename) in enumerate(zip(original_hogs, original_labels, original_filenames)):
+        dist = np.linalg.norm(
+            this_hog - other_hog)  ## calculando la distancia euclidiana entre el hog de la imagen de test y la previamente calculada
+        is_relevant = current_label == other_label  ## Es relevante SSI el label del test es igual a la de la imagen cercana.
+        datos_de_comparacion = {'is_relevant': is_relevant,
+                                'dist': dist,
+                                'other_filename': other_filename,
+                                }
+        # Si guardo la distancia puedo ordenar después
+        # si es relevante puedo calcular el mAP
+        # Y si guardo el nombre del archivo podré dibujar una cajita después.
+        distances.append(datos_de_comparacion)
+    # Cuando ya vimos las distancias de esta imagen de test a todas las imagenes de training
+    # las ordenamos de menor distancia a mayor.
+    sorted_distances = sorted(distances, key=lambda d: d['dist'])
+    # y seleccionamos las 10 más cercanas.
+    distances = sorted_distances[:10]
+    return distances, filename
+
+
+def imprimir_imagenes(distances, filename, i, relevant_counter, str_datadir):
+    ## esto imprime
+    if relevant_counter == 2 or relevant_counter > 10:
+        para_mostrar = [filename]
+        for d in distances[:10]:
+            para_mostrar.append(os.path.join(str_datadir, 'png_w256', d['other_filename']))
+        final_dim = (256 * len(para_mostrar), 256)
+        new_im = Image.new('L', final_dim)
+        for j, im_file in enumerate(para_mostrar):
+            im = Image.open(im_file)
+            new_im.paste(im, (j * 256, 0))
+        new_im.save('{}_comparado.jpg'.format(i))
+        print('{}_comparado.jpg'.format(i))
 
 
 if __name__ == '__main__':
