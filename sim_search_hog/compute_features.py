@@ -31,15 +31,21 @@ def calculate_distance_to_all_images(str_datadir, original_hogs, original_labels
     for i, (filename, current_label) in enumerate(zip(filenames, labels)) :
         distances, filename = distancias_ordenadas_a_imagen_de_test(current_label, filename, hog, original_filenames, original_hogs,
                                                    original_labels, str_datadir)
+        ## Si ya tengo las distancias de este ejemplo de test a todos los otros ejemplos
+        ## Entonces puedo calcular su AP
         relevant_counter = 0
         AP = 0
         for index, d in enumerate(distances):
             dividendo = 0
             if d['is_relevant']:
+                ## Si es relevante entonces el número de arriba de la división es la cantidad de aciertos
                 relevant_counter += 1
                 dividendo = relevant_counter
+            ## el númnero de abajo siempre es el índice de donde estamos.
             AP += dividendo / (index + 1)
         if relevant_counter:
+            ## La suma de todos los AP se divide por la cantidad total de
+            ## elementos relevantes.
             AP = AP/relevant_counter
             sum_of_aps += AP
 
@@ -76,8 +82,17 @@ def distancias_ordenadas_a_imagen_de_test(current_label, filename, hog, original
 
 
 def imprimir_imagenes(distances, filename, i, relevant_counter, str_datadir):
-    ## esto imprime
-    if relevant_counter == 2 or relevant_counter > 10:
+    ## esto imprime las fotitos concatenadas
+    ## la primera es la de prueba y las que le siguen son la respuesta a la query
+    r = np.random.random()
+    ## Sólo para que no dibuje tanto le puse ese límite.
+    ## los que tienen relevant counter == 2 son chistosos y no le achuntan a nada
+    ## mientras que los que tienen mayor a 10 son aburridos porque le achuntaron a toda la cosa.
+    imprimir = False
+    if (relevant_counter == 2 and r > 0.7) or relevant_counter > 9:
+        imprimir = True
+        ## Imprimir sólo algunos que tengan 2 relevantes y todos los que tengan 9 o más relevantes
+    if imprimir:
         para_mostrar = [filename]
         for d in distances[:10]:
             para_mostrar.append(os.path.join(str_datadir, 'png_w256', d['other_filename']))
@@ -86,8 +101,8 @@ def imprimir_imagenes(distances, filename, i, relevant_counter, str_datadir):
         for j, im_file in enumerate(para_mostrar):
             im = Image.open(im_file)
             new_im.paste(im, (j * 256, 0))
-        new_im.save('{}_comparado.jpg'.format(i))
-        print('{}_comparado.jpg'.format(i))
+        new_im.save('comparado_{}_{}.jpg'.format(relevant_counter, i))
+        print('comparado_{}_{}.jpg'.format(relevant_counter, i))
 
 
 if __name__ == '__main__':
